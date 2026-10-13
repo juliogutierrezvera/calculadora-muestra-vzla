@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calculadora de muestra</title>
+<style>
+:root{color-scheme:light}
+body{margin:0}
+
+:root{--bg:#ffffff;--ink:#111111;--muted:#555555;--line:#111111;--soft:#f0f0f0;--ok:#111111}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#121212;--ink:#f2f2f2;--muted:#b5b5b5;--line:#dddddd;--soft:#222222;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#121212;--ink:#f2f2f2;--muted:#b5b5b5;--line:#dddddd;--soft:#222222;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Arial,Helvetica,sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.6rem;margin:0 0 6px}
+h2{font-size:1.15rem;margin:0 0 10px}
+.lead{color:var(--muted);margin:0 0 18px}
+.panel{border:2px solid var(--line);border-radius:12px;padding:16px;margin:0 0 16px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.9rem;font-weight:700}
+input,select,textarea{font:inherit;padding:10px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-height:44px}
+input[type=number]{width:140px}
+select{width:100%;max-width:100%}
+label.f{min-width:0;max-width:100%}
+.row>label.f:has(select){flex:1 1 100%}
+input[type=text],input[type=tel]{max-width:100%}
+td,th{overflow-wrap:anywhere}
+.caso{border:2px solid var(--line);border-radius:10px;padding:12px;margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.caso input[type=number]{width:120px}
+.acc{display:flex;flex-wrap:wrap;gap:6px}
+.fcard{border:2px solid var(--line);border-radius:10px;padding:12px;margin-top:10px;display:flex;flex-direction:column;gap:8px}
+#guard td:nth-child(4),#guard td:nth-child(3){white-space:nowrap}
+#rep th:nth-child(1),#rep td:nth-child(1),#rep th:nth-child(2),#rep td:nth-child(2){white-space:nowrap}
+.chk{display:flex;gap:6px;align-items:center;font-size:.9rem;min-height:44px}
+.err{border-left:6px solid var(--line);background:var(--soft);padding:10px 12px;margin-top:12px;border-radius:0 8px 8px 0}
+#cObs{width:100%;min-height:90px}
+#fb2{width:100%;min-height:120px;margin-top:10px;font-family:"Courier New",monospace;font-size:.85rem}
+.btn{font:inherit;font-weight:700;padding:10px 16px;border:2px solid var(--line);border-radius:8px;background:var(--ink);color:var(--bg);cursor:pointer;min-height:44px}
+.btn.ghost{background:transparent;color:var(--ink)}
+a.btn{display:inline-flex;align-items:center;text-decoration:none}
+#fb{width:100%;min-height:120px;margin-top:10px;font-family:"Courier New",monospace;font-size:.85rem}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.tag{border:1.5px solid var(--line);border-radius:999px;padding:3px 10px;font-size:.85rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:14px}
+.kpi{background:var(--soft);border-radius:10px;padding:10px 12px}
+.kpi b{display:block;font-size:1.5rem;line-height:1.1}
+.kpi span{font-size:.8rem;color:var(--muted)}
+.msg{border-left:6px solid var(--line);background:var(--soft);padding:10px 12px;margin-top:12px;border-radius:0 8px 8px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font-family:"Courier New",monospace;border:1.5px solid var(--line);border-radius:6px;padding:2px 7px;font-size:.95rem}
+table{border-collapse:collapse;width:100%;margin-top:10px;font-size:.92rem}
+th,td{border:1.5px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{background:var(--soft)}
+pre{white-space:pre-wrap;background:var(--soft);border:1.5px solid var(--line);border-radius:8px;padding:12px;font:.88rem/1.45 "Courier New",monospace;margin:10px 0 0;max-height:420px;overflow:auto}
+[hidden]{display:none!important}
+.hint{font-size:.85rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<h1>Calculadora de selección de la muestra</h1>
+<p class="lead">Para usar el día de la visita al campamento. Escribe cuántos hogares hay (N) y la calculadora decide si es censo o muestra, calcula cuántos hogares entrevistar, hace el sorteo y arma la ficha para el supervisor.</p>
+
+<div class="tags" aria-label="Parámetros del diseño">
+  <span class="tag">Margen de error ±10%</span>
+  <span class="tag">Confianza 95%</span>
+  <span class="tag">p = 0,5</span>
+  <span class="tag">Censo si N ≤ 30</span>
+  <span class="tag">Sistemático solo si k ≥ 3</span>
+</div>
+
+<section class="panel">
+  <h2>1. Datos del campamento</h2>
+  <div class="row">
+    <label class="f" for="camp">Campamento
+      <select id="camp"></select></label>
+    <label class="f" for="otro" id="otroL" hidden>Nombre del sitio
+      <input id="otro" type="text" style="width:100%" placeholder="Nombre"></label>
+    <label class="f" for="fecha">Fecha
+      <input id="fecha" type="date"></label>
+    <label class="f" for="sup">Supervisor/a
+      <input id="sup" type="text" style="width:100%" placeholder="Nombre"></label>
+    <label class="f" for="nref">N del marco
+      <input id="nref" type="number" min="0" readonly></label>
+    <label class="f" for="N">N contado hoy
+      <input id="N" type="number" min="1" inputmode="numeric" placeholder="hogares"></label>
+  </div>
+  <div class="row" style="margin-top:12px" role="radiogroup" aria-label="Cómo se obtuvo N">
+    <label><input type="radio" name="met" value="reg" checked> Tengo registro (listado de hogares)</label>
+    <label><input type="radio" name="met" value="cnt"> No hay registro: conteo rápido</label>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div id="msg"></div>
+</section>
+
+<section class="panel" id="pSorteo" hidden>
+  <h2>2. Sorteo</h2>
+  <p class="hint" id="sorteoInfo"></p>
+  <div class="row">
+    <label class="f" for="seed">Semilla del sorteo
+      <input id="seed" type="number" min="1" inputmode="numeric"></label>
+    <button class="btn" id="bSort" type="button">Sortear</button>
+    <button class="btn ghost" id="bSeed" type="button">Nueva semilla</button>
+  </div>
+  <p class="hint">Con la misma semilla, el mismo N y el mismo n sale siempre el mismo resultado. Anota la semilla en la hoja de campo.</p>
+  <div id="out"></div>
+</section>
+
+<section class="panel" id="pRep" hidden>
+  <h2>3. Reparto entre encuestadores</h2>
+  <div class="row">
+    <label class="f" for="nenc">Encuestadores en el campamento
+      <input id="nenc" type="number" min="1" max="30" value="3"></label>
+  </div>
+  <div id="rep"></div>
+</section>
+
+<section class="panel" id="pFicha" hidden>
+  <h2>4. Ficha de selección</h2>
+  <p class="hint">Revisa la ficha y envíala a control de campo. Se guarda sola en este teléfono, así que si no hay internet puedes enviarla después.</p>
+  <pre id="ficha"></pre>
+  <div class="row" style="margin-top:12px">
+    <label class="f" for="wa">WhatsApp de control de campo (con código de país, sin +)
+      <input id="wa" type="tel" inputmode="numeric" style="width:100%" placeholder="58412XXXXXXX"></label>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <a class="btn" id="bWa" href="#" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+    <button class="btn ghost" id="bCopy" type="button">Copiar ficha</button>
+    <button class="btn ghost" id="bCsv" type="button">Copiar fila CSV</button>
+  </div>
+  <p class="hint" id="envMsg"></p>
+  <textarea id="fb" readonly hidden aria-label="Texto para copiar"></textarea>
+</section>
+
+<section class="panel" id="pGuard">
+  <h2>Fichas guardadas en este teléfono</h2>
+  <p class="hint">Aquí quedan las fichas que se han generado. Úsalo para reenviarlas cuando haya internet. Los datos se guardan solo en este teléfono.</p>
+  <div id="guard"></div>
+  <div class="row" style="margin-top:10px">
+    <button class="btn ghost" id="bAll" type="button">Copiar todas (CSV)</button>
+    <button class="btn ghost" id="bClear" type="button">Borrar todas</button>
+  </div>
+</section>
+<section class="panel" id="pCierre" hidden>
+  <h2>5. Ficha final del campamento</h2>
+  <p class="hint" id="cTit"></p>
+  <p>Elige solo los hogares titulares que <b>no se pudieron entrevistar</b> y escribe el hogar de reemplazo que decidiste. Si todos se entrevistaron, genera la ficha sin casos.</p>
+  <div id="cLista"></div>
+  <div class="row" style="margin-top:12px">
+    <button class="btn ghost" id="bCaso" type="button">+ Agregar caso</button>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <label class="f" for="cObs" style="width:100%">Observaciones finales
+      <textarea id="cObs" placeholder="Ej.: incidencias, accesos, comentarios del coordinador"></textarea></label>
+  </div>
+  <div id="cErr"></div>
+  <div class="row" style="margin-top:12px">
+    <button class="btn" id="bGenF" type="button">Generar ficha final</button>
+    <button class="btn ghost" id="bCierraP" type="button">Volver sin guardar</button>
+  </div>
+  <div id="cFin" hidden>
+    <h2 style="margin-top:18px">Ficha final</h2>
+    <pre id="cFicha"></pre>
+    <div class="row" style="margin-top:12px">
+      <label class="f" for="wa2">WhatsApp de control de campo (con código de país, sin +)
+        <input id="wa2" type="tel" inputmode="numeric" style="width:100%" placeholder="58412XXXXXXX"></label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <a class="btn" id="bWaF" href="#" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+      <button class="btn ghost" id="bCopyF" type="button">Copiar ficha final</button>
+      <button class="btn ghost" id="bCsvF" type="button">Copiar CSV</button>
+    </div>
+    <p class="hint" id="cMsg"></p>
+    <textarea id="fb2" readonly hidden aria-label="Texto para copiar"></textarea>
+  </div>
+</section>
+</main>
+
+<script>
+(function(){
+// ---- Marco: [campamento, tipo, sector, N de referencia] ---------------------
+var CAMPS = [["Brisas De Maiquetia", "Itinerante", "Este", 600], ["Estadio Mare Abajo", "Itinerante", "Este", 376], ["Polideportivo José María Vargas", "Itinerante", "Este", 158], ["Cesar Nieves", "Itinerante", "Oeste", 334], ["La Paez", "Itinerante", "Oeste", 48], ["La Soublette", "Itinerante", "Oeste", 27], ["Ciudad Vacacional Los Caracas", "Transitorio", "Este", 282], ["E.B Juan Aranaga", "Transitorio", "Este", 27], ["Escuela Alberto Ravell", "Transitorio", "Este", 16], ["Escuela Estadal La Guaira", "Transitorio", "Este", 30], ["Escuela Guaicamacuto", "Transitorio", "Este", 112], ["Fundación Sol de Vargas", "Transitorio", "Este", 39], ["Juan German Roció", "Transitorio", "Este", 68], ["Licenciado Aranda", "Transitorio", "Este", 98], ["Liceo Nacional Lorenzo Gonzalez", "Transitorio", "Este", 50], ["Liceo Republica de Panamá", "Transitorio", "Este", 150], ["Martin Lutter King", "Transitorio", "Este", 43], ["U.E Republica del Salvador", "Transitorio", "Este", 85], ["Unidad Educativa 10 de marzo", "Transitorio", "Este", 115], ["Universidad Simón Bolívar", "Transitorio", "Este", 257], ["C.E Antonio Jose de Sucre", "Transitorio", "Oeste", 36], ["C.E.I Manuel Gual", "Transitorio", "Oeste", 24], ["CANES Escuela de Grumetes", "Transitorio", "Oeste", 156], ["Escuela José Ángel Valero Hostos", "Transitorio", "Oeste", 59], ["Escuela Leon Trujillo", "Transitorio", "Oeste", 38], ["Gustavo Olivares Bosques", "Transitorio", "Oeste", 54], ["Liceo Armando Reveron", "Transitorio", "Oeste", 57], ["Narciso Gonell", "Transitorio", "Oeste", 64], ["Refugio para adultos y adultas mayores", "Transitorio", "Oeste", 8], ["U.E Oliva Andrade", "Transitorio", "Oeste", 56], ["Universidad Marítima del Caribe", "Transitorio", "Oeste", 271]];
+
+// ---- Fórmula de la muestra (la misma del diseño) ----------------------------
+// n0 = z^2 * p * (1-p) / e^2 = 96,04 ; n = n0 * N / (n0 + N - 1), hacia arriba
+var Z = 1.96, P = 0.5, E = 0.10, UMB = 30;
+var N0 = Z*Z*P*(1-P)/(E*E);
+function nOf(N){ return N <= UMB ? N : Math.ceil(N0*N/(N0+N-1) - 1e-9); }
+function moe(N,n){ return n >= N ? 0 : Z*Math.sqrt(P*(1-P)/n*(N-n)/(N-1)); }
+
+// ---- Generador con semilla (auditable) ---------------------------------------
+function rng(seed){
+  var a = seed >>> 0;
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function newSeed(){
+  var v = new Uint32Array(1);
+  (window.crypto || window.msCrypto).getRandomValues(v);
+  return 10000 + (v[0] % 90000);
+}
+function sorteoSimple(N, n, seed){            // n posiciones distintas entre 1 y N
+  var R = rng(seed), arr = [];
+  for (var i = 1; i <= N; i++) arr.push(i);
+  for (var j = N - 1; j > 0; j--){            // Fisher-Yates
+    var r = Math.floor(R() * (j + 1)), t = arr[j]; arr[j] = arr[r]; arr[r] = t;
+  }
+  return arr.slice(0, n).sort(function(a,b){return a-b;});
+}
+function sorteoSistematico(N, n, k, seed){    // k entero; arranque entre 1 y N; lista circular
+  var R = rng(seed), a = Math.floor(R() * N) + 1, out = [];
+  for (var i = 0; i < n; i++) out.push(((a - 1 + i*k) % N) + 1);
+  return { a: a, pos: out.sort(function(x,y){return x-y;}) };
+}
+
+// ---- Interfaz ------------------------------------------------------------------
+var $ = function(s){ return document.querySelector(s); };
+var fmt = function(v,d){ return v.toLocaleString('es-VE',{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); };
+var esc = function(s){ return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); };
+var camp = $('#camp');
+camp.innerHTML = '<option value="">Elige…</option>' +
+  CAMPS.map(function(c,i){ return '<option value="'+i+'">'+esc(c[0])+' · '+c[1]+' · '+c[2]+'</option>'; }).join('') +
+  '<option value="otro">Otro sitio (no está en la lista)</option>';
+$('#fecha').valueAsDate = new Date();
+$('#seed').value = newSeed();
+
+var S = null;   // estado del cálculo actual
+var RES = null; // resultado del sorteo
+
+function metodoReg(){ return document.querySelector('input[name=met]:checked').value; }
+function nombre(){
+  var v = camp.value;
+  if (v === 'otro') return ($('#otro').value.trim() || 'Otro sitio');
+  if (v === '') return '(sin campamento)';
+  return CAMPS[+v][0];
+}
+
+function calcular(){
+  $('#otroL').hidden = camp.value !== 'otro';
+  var v = camp.value;
+  $('#nref').value = (v !== '' && v !== 'otro') ? CAMPS[+v][3] : '';
+  var N = Math.round(parseFloat($('#N').value));
+  RES = null;
+  $('#out').innerHTML = ''; $('#rep').innerHTML = '';
+  $('#pRep').hidden = true; $('#pFicha').hidden = true;
+  if (!(N > 0)){ $('#kpis').innerHTML = ''; $('#msg').innerHTML = ''; $('#pSorteo').hidden = true; S = null; return; }
+  var cen = N <= UMB, n = nOf(N), k = cen ? null : Math.floor(N / n);
+  var sis = !cen && metodoReg() === 'cnt' && k >= 3;
+  var modo = cen ? 'Censo' : (sis ? 'Sistemático' : 'Aleatorio simple');
+  S = { N:N, n:n, k:k, cen:cen, modo:modo, ref:(v !== '' && v !== 'otro') ? CAMPS[+v][3] : null };
+  var kp = [
+    ['Decisión', cen ? 'Censo' : 'Muestra'],
+    ['Hogares (N)', fmt(N)],
+    ['Entrevistas (n)', fmt(n)],
+    ['Método', modo]
+  ];
+  if (sis) kp.push(['Intervalo k', fmt(k)]);
+  if (!cen) kp.push(['Fracción', fmt(100*n/N,1)+'%'], ['Margen de error', '±'+fmt(100*moe(N,n),1)+'%']);
+  $('#kpis').innerHTML = kp.map(function(x){ return '<div class="kpi"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>'; }).join('');
+  var m = '';
+  if (cen) m += '<div class="msg"><b>Censo:</b> se entrevistan todos los hogares (1 a '+N+'). Si un hogar está ausente, se vuelve hasta 2 veces. Si aparecen hogares nuevos, se agregan. Si al contar resultan más de '+UMB+' hogares, deja de ser censo.</div>';
+  else if (metodoReg() === 'cnt' && k < 3) m += '<div class="msg"><b>k = '+k+' (menor de 3):</b> los hogares quedarían muy juntos en el recorrido, así que se usa el aleatorio simple sobre la lista numerada.</div>';
+  if (S.ref && Math.abs(N - S.ref) / S.ref > 0.2) m += '<div class="msg"><b>Revisa el conteo:</b> el N de hoy ('+N+') se aleja más de 20% del N del marco ('+S.ref+'). Confirma el conteo con el coordinador antes de sortear.</div>';
+  $('#msg').innerHTML = m;
+  $('#pSorteo').hidden = false;
+  $('#sorteoInfo').textContent = cen
+    ? 'En un censo no hay sorteo: la lista es de 1 a '+N+'. Pulsa Sortear para generar la ficha.'
+    : (sis ? 'Se sortea el arranque a entre 1 y N y se toman a, a+k, a+2k... (si se pasa de N, se resta N) hasta completar n.'
+           : 'Se sortean n posiciones distintas entre 1 y N, sin repetir.');
+}
+
+function chips(arr){ return '<div class="chips">'+arr.map(function(x){return '<span class="chip">'+x+'</span>';}).join('')+'</div>'; }
+
+function sortear(){
+  if (!S) return;
+  var seed = Math.max(1, Math.round(parseFloat($('#seed').value)) || newSeed());
+  $('#seed').value = seed;
+  var pos, a = null;
+  if (S.cen){ pos = []; for (var i = 1; i <= S.N; i++) pos.push(i); }
+  else if (S.modo === 'Sistemático'){ var r = sorteoSistematico(S.N, S.n, S.k, seed); pos = r.pos; a = r.a; }
+  else pos = sorteoSimple(S.N, S.n, seed);
+  RES = { pos: pos, a: a, seed: seed };
+  var h = '';
+  if (a !== null) h += '<p><b>Arranque a = '+a+'</b> · k = '+S.k+'</p>';
+  h += '<p><b>Hogares a entrevistar</b> ('+pos.length+', posición en la lista numerada):</p>' + (S.cen ? '<p>Todos, del 1 al '+S.N+'.</p>' : chips(pos));
+  $('#out').innerHTML = h;
+  $('#pRep').hidden = false; $('#pFicha').hidden = false;
+  repartir(); ficha();
+}
+
+function bloques(){
+  var m = Math.max(1, Math.min(30, Math.round(parseFloat($('#nenc').value)) || 1));
+  var pos = RES.pos, tot = pos.length, base = Math.floor(tot / m), extra = tot % m, ini = 0, out = [];
+  for (var i = 0; i < m; i++){
+    var cnt = base + (i < extra ? 1 : 0);
+    out.push(pos.slice(ini, ini + cnt)); ini += cnt;
+  }
+  return out;
+}
+function repartir(){
+  if (!RES) return;
+  var b = bloques();
+  $('#rep').innerHTML = '<table><tr><th>Encuestador</th><th>Hogares</th><th>Posiciones</th></tr>' +
+    b.map(function(x,i){
+      var txt = S.cen ? (x.length ? x[0]+' a '+x[x.length-1] : '—') : (x.length ? x.join(', ') : '—');
+      return '<tr><td>Encuestador '+(i+1)+'</td><td>'+x.length+'</td><td>'+txt+'</td></tr>';
+    }).join('') + '</table>';
+}
+
+function ficha(){
+  if (!RES) return;
+  var b = bloques(), L = [];
+  L.push('FICHA DE SELECCIÓN DE HOGARES');
+  L.push('Campamento: '+nombre());
+  L.push('Fecha: '+$('#fecha').value);
+  L.push('Supervisor/a: '+($('#sup').value.trim() || '(sin nombre)'));
+  L.push('Cómo se obtuvo N: '+(metodoReg() === 'reg' ? 'registro (listado de hogares)' : 'conteo rápido'));
+  L.push('N contado: '+S.N+(S.ref ? '   (N del marco: '+S.ref+')' : ''));
+  L.push('Diseño: '+(S.cen ? 'Censo' : 'Muestra · '+S.modo));
+  L.push('Entrevistas (n): '+S.n+(S.cen ? '' : '   Margen de error: ±'+fmt(100*moe(S.N,S.n),1)+'%'));
+  if (S.modo === 'Sistemático') L.push('k = N ÷ n (hacia abajo): '+S.k+'   Arranque a: '+RES.a);
+  if (!S.cen) L.push('Semilla del sorteo: '+RES.seed);
+  L.push('');
+  L.push(S.cen ? 'HOGARES: todos, del 1 al '+S.N : 'HOGARES SELECCIONADOS (posición en la lista numerada):');
+  if (!S.cen) L.push(RES.pos.join(', '));
+  L.push('');
+  L.push('REPARTO POR ENCUESTADOR:');
+  b.forEach(function(x,i){
+    L.push('  Encuestador '+(i+1)+' ('+x.length+'): '+(S.cen ? (x.length ? x[0]+' a '+x[x.length-1] : '—') : (x.join(', ') || '—')));
+  });
+  L.push('');
+  L.push('REGLAS: ausente = volver hasta 2 veces en horarios distintos; rechazo = anotar el motivo.');
+  L.push('Reemplazo: el hogar siguiente en la lista numerada (posición +1). Nunca la elige el encuestador.');
+  L.push('Firma: ____________________');
+  $('#ficha').textContent = L.join('\n');
+  guardar(b);
+  actualizarWa();
+}
+
+// ---- Eventos -------------------------------------------------------------------
+['change','input'].forEach(function(ev){
+  camp.addEventListener(ev, calcular);
+  $('#N').addEventListener(ev, calcular);
+  $('#otro').addEventListener(ev, function(){ if (RES) ficha(); });
+  $('#fecha').addEventListener(ev, function(){ if (RES) ficha(); });
+  $('#nenc').addEventListener(ev, function(){ repartir(); ficha(); });
+});
+Array.prototype.forEach.call(document.querySelectorAll('input[name=met]'), function(r){ r.addEventListener('change', calcular); });
+$('#bSort').onclick = sortear;
+$('#bSeed').onclick = function(){ $('#seed').value = newSeed(); if (S) sortear(); };
+$('#bCopy').onclick = function(){
+  var t = $('#ficha').textContent, b = $('#bCopy');
+  var ok = function(){ b.textContent = 'Copiada'; setTimeout(function(){ b.textContent = 'Copiar ficha'; }, 1500); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, function(){});
+  else { var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');ok();}catch(e){} document.body.removeChild(ta); }
+};
+
+
+// ---- Guardado local, envío y copia ---------------------------------------------
+var KEY = 'fichas_muestra_v1';
+function leer(){ try{ return JSON.parse(localStorage.getItem(KEY) || '[]'); }catch(e){ return []; } }
+function escribir(a){ try{ localStorage.setItem(KEY, JSON.stringify(a)); }catch(e){} }
+function leerWa(){ try{ return localStorage.getItem('wa_control') || ''; }catch(e){ return ''; } }
+function guardarWa(v){ try{ localStorage.setItem('wa_control', v); }catch(e){} }
+function numWa(){ return ($('#wa').value || '').replace(/\D/g, ''); }
+function waUrl(texto){ return 'https://wa.me/' + numWa() + '?text=' + encodeURIComponent(texto); }
+function actualizarWa(){
+  guardarWa(numWa());
+  if (!RES) return;
+  $('#bWa').href = waUrl($('#ficha').textContent);
+  $('#envMsg').textContent = numWa()
+    ? 'Pulsa "Enviar por WhatsApp" y luego enviar. Si no hay internet, el mensaje queda en cola y sale cuando vuelva la señal.'
+    : 'Escribe el número de control de campo para que el mensaje vaya directo. Si lo dejas vacío podrás elegir el contacto en WhatsApp.';
+}
+function guardar(b){
+  if (!RES || !S) return;
+  var rec = {
+    id: $('#fecha').value + '|' + nombre() + '|' + RES.seed,
+    fecha: $('#fecha').value, campamento: nombre(), supervisor: $('#sup').value.trim(),
+    metodoN: metodoReg() === 'reg' ? 'registro' : 'conteo rápido',
+    nMarco: S.ref == null ? '' : S.ref, N: S.N, diseno: S.cen ? 'Censo' : S.modo, n: S.n,
+    k: S.k == null ? '' : S.k, a: RES.a == null ? '' : RES.a, semilla: S.cen ? '' : RES.seed,
+    margen: S.cen ? 0 : Math.round(1000*moe(S.N,S.n))/10,
+    encuestadores: b.length,
+    posiciones: S.cen ? ('todas (1 a ' + S.N + ')') : RES.pos.join(' '),
+    hora: (function(){ var d = new Date(), p = function(x){ return String(x).padStart(2,'0'); }; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); })(),
+    pos: S.cen ? null : RES.pos.slice(), cen: S.cen,
+    texto: $('#ficha').textContent
+  };
+  var prev = leer().filter(function(x){ return x.id === rec.id; })[0];
+  if (prev && prev.cierre) rec.cierre = prev.cierre;
+  var arr = leer().filter(function(x){ return x.id !== rec.id; });
+  arr.push(rec); escribir(arr); listar();
+}
+function listar(){
+  var a = leer();
+  if (!a.length){ $('#guard').innerHTML = '<p class="hint">Todavía no hay fichas guardadas.</p>'; return; }
+  $('#guard').innerHTML = a.map(function(x,i){
+    return '<div class="fcard"><b>'+esc(x.campamento)+'</b>' +
+      '<span class="hint">'+esc(x.fecha)+' · n = '+x.n+' · '+(x.cierre ? 'Finalizado' : 'En campo')+'</span>' +
+      '<div class="acc">' +
+        '<a class="btn ghost" target="_blank" rel="noopener" href="'+waUrl(x.texto)+'">Reenviar selección</a>' +
+        '<button class="btn ghost" type="button" data-cerrar="'+i+'">'+(x.cierre ? 'Editar ficha final' : 'Ir a ficha final')+'</button>' +
+        (x.cierre ? '<a class="btn ghost" target="_blank" rel="noopener" href="'+waUrl(x.cierre.texto)+'">Reenviar ficha final</a>' : '') +
+      '</div></div>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('#guard button[data-cerrar]'), function(btn){
+    btn.onclick = function(){ abrirCierre(+btn.dataset.cerrar); };
+  });
+}
+function csvEsc(v){ v = String(v == null ? '' : v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }
+var CAB = ['fecha','campamento','supervisor','metodo_N','N_marco','N_contado','diseno','n','k','arranque_a','semilla','margen_error_pct','encuestadores','posiciones','hora_registro'];
+function filaCsv(x){ return [x.fecha,x.campamento,x.supervisor,x.metodoN,x.nMarco,x.N,x.diseno,x.n,x.k,x.a,x.semilla,String(x.margen).replace('.',','),x.encuestadores,x.posiciones,x.hora].map(csvEsc).join(';'); }
+function csvTexto(filas){ return CAB.join(';') + '\n' + filas.map(filaCsv).join('\n'); }
+function actual(){
+  var id = $('#fecha').value + '|' + nombre() + '|' + (RES && RES.seed);
+  var a = leer().filter(function(x){ return x.id === id; });
+  return a.length ? a[0] : null;
+}
+function copiar(texto, btn, etiqueta, boxSel, msgSel){
+  var box = $(boxSel || '#fb'), msg = $(msgSel || '#envMsg');
+  var ok = function(){ btn.textContent = 'Copiado'; box.hidden = true; setTimeout(function(){ btn.textContent = etiqueta; }, 1500); };
+  var plan = function(){
+    box.hidden = false; box.value = texto; box.focus(); box.select();
+    msg.textContent = 'No se pudo copiar solo. El texto quedó seleccionado: cópialo con el menú del teléfono.';
+  };
+  try { navigator.clipboard.writeText(texto).then(ok, plan); } catch(e){ plan(); }
+}
+
+$('#wa').value = leerWa();
+$('#wa').addEventListener('input', function(){ $('#wa2').value = $('#wa').value; actualizarWa(); listar(); refrescarFinal(); });
+$('#wa2').value = leerWa();
+$('#wa2').addEventListener('input', function(){ $('#wa').value = $('#wa2').value; actualizarWa(); listar(); refrescarFinal(); });
+$('#bCopy').onclick = function(){ copiar($('#ficha').textContent, $('#bCopy'), 'Copiar ficha'); };
+$('#bCsv').onclick = function(){ var r = actual(); if (r) copiar(csvTexto([r]), $('#bCsv'), 'Copiar fila CSV'); };
+$('#bAll').onclick = function(){ var a = leer(); if (a.length) copiar(csvTexto(a), $('#bAll'), 'Copiar todas (CSV)'); };
+var confirmando = false, tConf = null;
+$('#bClear').onclick = function(){
+  var b = $('#bClear');
+  if (!confirmando){
+    confirmando = true; b.textContent = '¿Seguro? Pulsa otra vez para borrar';
+    tConf = setTimeout(function(){ confirmando = false; b.textContent = 'Borrar todas'; }, 4000);
+  } else {
+    clearTimeout(tConf); confirmando = false; b.textContent = 'Borrar todas'; escribir([]); listar();
+  }
+};
+listar();
+
+
+// ---- Cierre del campamento: no entrevistados, reemplazos y observaciones ----------
+var MOTIVOS = ['Ausente (2 visitas)', 'Rechazo', 'No elegible', 'Ya no vive', 'Otro'];
+var CI = -1, CASOS = [];
+function titularesDe(r){
+  if (r.pos && r.pos.length) return r.pos;
+  var out = [], i;
+  if (r.cen || /todas/.test(r.posiciones || '')){ for (i = 1; i <= r.N; i++) out.push(i); return out; }
+  return String(r.posiciones || '').split(' ').map(Number).filter(function(x){ return x > 0; });
+}
+function hoy(){ var d = new Date(), p = function(x){ return String(x).padStart(2,'0'); }; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function pintarCasos(){
+  if (!CASOS.length){ $('#cLista').innerHTML = '<p class="hint">Sin casos. Si todos los titulares se entrevistaron, genera la ficha así.</p>'; return; }
+  var rr = leer()[CI];
+  var lista = rr ? titularesDe(rr).slice().sort(function(x,y){ return x - y; }) : [];
+  var usados = CASOS.map(function(c){ return parseInt(c.tit, 10); }).filter(function(x){ return x > 0; });
+  $('#cLista').innerHTML = CASOS.map(function(c,k){
+    var actual = parseInt(c.tit, 10);
+    var opts = lista.filter(function(t){ return t === actual || usados.indexOf(t) < 0; })
+      .map(function(t){ return '<option value="'+t+'"'+(t === actual ? ' selected' : '')+'>'+t+'</option>'; }).join('');
+    return '<div class="caso">' +
+      '<label class="f">Hogar titular<select data-k="'+k+'" data-f="tit"><option value="">Elige…</option>'+opts+'</select></label>' +
+      '<label class="f">Motivo<select data-k="'+k+'" data-f="mot"><option value="">Elige…</option>' +
+        MOTIVOS.map(function(m){ return '<option'+(c.mot === m ? ' selected' : '')+'>'+m+'</option>'; }).join('') + '</select></label>' +
+      (c.mot === 'Otro' ? '<label class="f">¿Cuál?<input type="text" data-k="'+k+'" data-f="otro" value="'+esc(c.otro)+'" style="width:180px"></label>' : '') +
+      '<label class="f">Hogar de reemplazo<input type="number" min="1" inputmode="numeric" data-k="'+k+'" data-f="rem" value="'+esc(c.rem)+'"'+(c.sinrem ? ' disabled' : '')+'></label>' +
+      '<label class="chk"><input type="checkbox" data-k="'+k+'" data-f="sinrem"'+(c.sinrem ? ' checked' : '')+'> Sin reemplazo</label>' +
+      '<button class="btn ghost" type="button" data-quitar="'+k+'">Quitar</button></div>';
+  }).join('');
+}
+function abrirCierre(i){
+  var r = leer()[i]; if (!r) return;
+  CI = i;
+  CASOS = (r.cierre && r.cierre.casos ? r.cierre.casos : []).map(function(c){ return { tit:c.tit, mot:c.mot, otro:c.otro || '', rem:(c.rem == null ? '' : c.rem), sinrem:!!c.sinrem }; });
+  $('#cTit').textContent = r.campamento + ' · N = ' + r.N + ' · n = ' + r.n + ' · selección del ' + r.fecha;
+  $('#cObs').value = r.cierre ? (r.cierre.obs || '') : '';
+  $('#cErr').innerHTML = '';
+  pintarCasos();
+  if (r.cierre) mostrarFinal(r.cierre); else $('#cFin').hidden = true;
+  $('#pCierre').hidden = false;
+  $('#pCierre').scrollIntoView();
+}
+function validarCierre(r){
+  var tit = titularesDe(r), errs = [], usadoT = {}, usadoR = {};
+  CASOS.forEach(function(c,k){
+    var n = k + 1, t = parseInt(c.tit, 10), q = parseInt(c.rem, 10);
+    if (!(t > 0)) errs.push('Caso '+n+': escribe el hogar titular.');
+    else if (tit.indexOf(t) < 0) errs.push('Caso '+n+': el hogar '+t+' no está en la muestra seleccionada.');
+    else if (usadoT[t]) errs.push('Caso '+n+': el hogar '+t+' ya está en otro caso.');
+    else usadoT[t] = 1;
+    if (!c.mot) errs.push('Caso '+n+': elige el motivo.');
+    if (c.mot === 'Otro' && !String(c.otro).trim()) errs.push('Caso '+n+': escribe cuál es el motivo.');
+    if (!c.sinrem){
+      if (!(q > 0)) errs.push('Caso '+n+': escribe el hogar de reemplazo o marca "Sin reemplazo".');
+      else if (q > r.N) errs.push('Caso '+n+': el reemplazo '+q+' es mayor que N ('+r.N+').');
+      else if (tit.indexOf(q) >= 0) errs.push('Caso '+n+': el hogar '+q+' ya es titular de la muestra.');
+      else if (usadoR[q]) errs.push('Caso '+n+': el reemplazo '+q+' ya se usó en otro caso.');
+      else usadoR[q] = 1;
+    }
+  });
+  return errs;
+}
+function motivoTxt(c){ return c.mot === 'Otro' ? 'Otro: ' + String(c.otro).trim() : c.mot; }
+function armarFinal(r, casos, obs){
+  var n = r.n, noEnt = casos.length, conRem = casos.filter(function(c){ return !c.sinrem; }).length, sinRem = noEnt - conRem;
+  var efect = n - sinRem, tasa = n ? 100 * (n - noEnt) / n : 0, fc = hoy();
+  var L = [];
+  L.push('FICHA FINAL DE CAMPAMENTO');
+  L.push('Campamento: ' + r.campamento);
+  L.push('Selección: ' + r.fecha + '   Cierre: ' + fc);
+  L.push('Supervisor/a: ' + (r.supervisor || '(sin nombre)'));
+  L.push('N: ' + r.N + '   n: ' + r.n + '   Diseño: ' + r.diseno + (r.semilla !== '' && r.semilla != null ? '   Semilla: ' + r.semilla : ''));
+  L.push('');
+  L.push('RESULTADO');
+  L.push('Hogares titulares: ' + n);
+  L.push('Entrevistados como titulares: ' + (n - noEnt) + ' (' + fmt(tasa,1) + '%)');
+  L.push('No entrevistados: ' + noEnt);
+  L.push('Reemplazos usados: ' + conRem);
+  L.push('Sin reemplazo: ' + sinRem);
+  L.push('Entrevistas efectivas: ' + efect + ' de ' + n);
+  L.push('');
+  if (!noEnt) L.push('CASOS: sin novedades');
+  else {
+    L.push('CASOS (hogar titular -> motivo -> reemplazo):');
+    casos.forEach(function(c){ L.push('  ' + c.tit + ' -> ' + motivoTxt(c) + ' -> ' + (c.sinrem ? 'sin reemplazo' : c.rem)); });
+  }
+  L.push('');
+  L.push('OBSERVACIONES: ' + (obs.trim() || '(sin observaciones)'));
+  var cab = ['campamento','fecha_seleccion','fecha_cierre','supervisor','N','n','diseno','semilla','hogar_titular','motivo','hogar_reemplazo','sin_reemplazo','observaciones_finales'].join(';');
+  var base = function(c){ return [r.campamento, r.fecha, fc, r.supervisor, r.N, r.n, r.diseno, r.semilla,
+    c ? c.tit : '', c ? motivoTxt(c) : '', c ? (c.sinrem ? '' : c.rem) : '', c ? (c.sinrem ? 'si' : 'no') : '', obs.trim()].map(csvEsc).join(';'); };
+  var filas = noEnt ? casos.map(base) : [base(null)];
+  return { texto: L.join('\n'), csv: cab + '\n' + filas.join('\n'), fecha: fc };
+}
+function mostrarFinal(ci){
+  $('#cFin').hidden = false;
+  $('#cFicha').textContent = ci.texto;
+  $('#wa2').value = leerWa();
+  $('#bWaF').href = waUrl(ci.texto);
+  $('#cMsg').textContent = numWa() ? 'Pulsa "Enviar por WhatsApp" y luego enviar.' : 'Escribe el número de control de campo para que el mensaje vaya directo.';
+}
+function refrescarFinal(){
+  var r = leer()[CI];
+  if (CI >= 0 && r && r.cierre && !$('#pCierre').hidden) mostrarFinal(r.cierre);
+}
+function generarFinal(){
+  var a = leer(), r = a[CI]; if (!r) return;
+  var errs = validarCierre(r);
+  if (errs.length){ $('#cErr').innerHTML = '<div class="err"><b>Revisa antes de generar:</b><br>' + errs.map(esc).join('<br>') + '</div>'; return; }
+  $('#cErr').innerHTML = '';
+  var casos = CASOS.map(function(c){ return { tit:parseInt(c.tit,10), mot:c.mot, otro:String(c.otro).trim(), rem:c.sinrem ? null : parseInt(c.rem,10), sinrem:!!c.sinrem }; });
+  var obs = $('#cObs').value;
+  var f = armarFinal(r, casos, obs);
+  r.cierre = { casos:casos, obs:obs, fecha:f.fecha, texto:f.texto, csv:f.csv };
+  escribir(a); listar(); mostrarFinal(r.cierre);
+}
+$('#cLista').addEventListener('input', function(e){
+  var t = e.target, k = t.dataset.k, fl = t.dataset.f;
+  if (k == null || t.type === 'checkbox' || t.tagName === 'SELECT') return;
+  CASOS[+k][fl] = t.value;
+});
+$('#cLista').addEventListener('change', function(e){
+  var t = e.target, k = t.dataset.k, fl = t.dataset.f;
+  if (k == null) return;
+  if (t.type === 'checkbox'){ CASOS[+k][fl] = t.checked; if (t.checked) CASOS[+k].rem = ''; pintarCasos(); }
+  else if (t.tagName === 'SELECT'){ CASOS[+k][fl] = t.value; pintarCasos(); }
+});
+$('#cLista').addEventListener('click', function(e){
+  var q = e.target.dataset ? e.target.dataset.quitar : null;
+  if (q != null){ CASOS.splice(+q, 1); pintarCasos(); }
+});
+$('#bCaso').onclick = function(){ CASOS.push({ tit:'', mot:'', otro:'', rem:'', sinrem:false }); pintarCasos(); };
+$('#bGenF').onclick = generarFinal;
+$('#bCierraP').onclick = function(){ $('#pCierre').hidden = true; CI = -1; };
+$('#bCopyF').onclick = function(){ var r = leer()[CI]; if (r && r.cierre) copiar(r.cierre.texto, $('#bCopyF'), 'Copiar ficha final', '#fb2', '#cMsg'); };
+$('#bCsvF').onclick = function(){ var r = leer()[CI]; if (r && r.cierre) copiar(r.cierre.csv, $('#bCsvF'), 'Copiar CSV', '#fb2', '#cMsg'); };
+
+// Exponer funciones para pruebas
+window.__calc = { nOf: nOf, sorteoSimple: sorteoSimple, sorteoSistematico: sorteoSistematico, moe: moe };
+})();
+</script>
+</body>
+</html>
